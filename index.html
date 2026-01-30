@@ -1,5 +1,148 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><title>Test</title></head>
-<body><h1>Site is working</h1></body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Team Role Finder</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 760px; margin: 24px auto; padding: 0 12px; }
+    h1 { font-size: 22px; }
+    .card { border: 1px solid #ddd; padding: 14px; border-radius: 10px; margin: 12px 0; }
+    label { display:block; margin: 10px 0 6px; }
+    input[type="text"], select { width: 100%; padding: 10px; font-size: 16px; }
+    input[type="range"] { width: 100%; }
+    .row { display: grid; grid-template-columns: 1fr 90px; gap: 10px; align-items: center; }
+    .btn { padding: 12px 14px; font-size: 16px; cursor: pointer; }
+    .muted { color: #666; font-size: 14px; }
+    .big { font-size: 18px; font-weight: 700; }
+    ul { margin: 8px 0 0 18px; }
+  </style>
+</head>
+<body>
+  <h1>Team Role Finder</h1>
+  <div class="card">
+    <label>Name</label>
+    <input id="name" type="text" placeholder="Type your name">
+
+    <label>Class type</label>
+    <select id="classType">
+      <option value="marketing">Marketing nonprofit plan plus presentation</option>
+      <option value="climate">Climate service presentation</option>
+    </select>
+
+    <div id="questions"></div>
+
+    <button class="btn" id="calc">Get results</button>
+    <div class="muted">Local only. No data saved.</div>
+  </div>
+
+  <div class="card" id="result" style="display:none;">
+    <div class="big" id="rName"></div>
+    <div>Points: <span id="rPts"></span>/100</div>
+    <div>Role: <span id="rRole"></span></div>
+    <div>Top strengths</div>
+    <ul id="rStrengths"></ul>
+  </div>
+
+<script>
+  const marketingSkills = [
+    { key:"Client discovery", q:"I can ask clear questions and capture a nonprofits real needs" },
+    { key:"Research and insights", q:"I can find and summarize audience and competitor info fast" },
+    { key:"Strategy and planning", q:"I can turn research into goals positioning and a simple plan" },
+    { key:"Writing and structure", q:"I can write clean sections with clear flow" },
+    { key:"Presentation and persuasion", q:"I can present clearly and handle questions confidently" },
+    { key:"Project management", q:"I meet deadlines and keep the team organized" }
+  ];
+
+  const climateSkills = [
+    { key:"Climate literacy", q:"I can explain the topic simply with accurate facts" },
+    { key:"Evidence and sources", q:"I can find credible sources and cite them correctly" },
+    { key:"Storytelling", q:"I can turn facts into a message people care about" },
+    { key:"Slide design", q:"I can build clean slides that support the talk" },
+    { key:"Speaking and delivery", q:"I can speak clearly with good pacing and confidence" },
+    { key:"Team coordination", q:"I communicate progress and support teammates" }
+  ];
+
+  const roleMap = {
+    marketing: {
+      "Client discovery":"Researcher",
+      "Research and insights":"Researcher",
+      "Strategy and planning":"Strategist",
+      "Writing and structure":"Writer",
+      "Presentation and persuasion":"Presenter",
+      "Project management":"Project lead"
+    },
+    climate: {
+      "Climate literacy":"Content lead",
+      "Evidence and sources":"Research lead",
+      "Storytelling":"Story lead",
+      "Slide design":"Slide lead",
+      "Speaking and delivery":"Speaker",
+      "Team coordination":"Coordinator"
+    }
+  };
+
+  function renderQuestions() {
+    const type = document.getElementById("classType").value;
+    const skills = type === "marketing" ? marketingSkills : climateSkills;
+    const wrap = document.getElementById("questions");
+    wrap.innerHTML = "";
+    skills.forEach((s, idx) => {
+      const id = "q" + idx;
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <div>${s.key}</div>
+        <div class="muted">${s.q}</div>
+        <div class="row">
+          <input type="range" id="${id}" min="1" max="5" value="3">
+          <div><span id="${id}v">3</span>/5</div>
+        </div>
+      `;
+      wrap.appendChild(card);
+      const slider = card.querySelector("#" + id);
+      const val = card.querySelector("#" + id + "v");
+      slider.addEventListener("input", () => val.textContent = slider.value);
+    });
+  }
+
+  function calc() {
+    const name = document.getElementById("name").value.trim() || "Student";
+    const type = document.getElementById("classType").value;
+    const skills = type === "marketing" ? marketingSkills : climateSkills;
+
+    const scores = skills.map((s, idx) => {
+      const v = Number(document.getElementById("q" + idx).value);
+      return { skill:s.key, score:v };
+    });
+
+    const totalRaw = scores.reduce((a, x) => a + x.score, 0);
+    const points = Math.round((totalRaw / 30) * 100);
+
+    scores.sort((a, b) => b.score - a.score);
+    const top = scores.slice(0, 3);
+
+    const primarySkill = top[0].skill;
+    const role = roleMap[type][primarySkill] || "Support";
+
+    document.getElementById("rName").textContent = name;
+    document.getElementById("rPts").textContent = points;
+    document.getElementById("rRole").textContent = role;
+
+    const ul = document.getElementById("rStrengths");
+    ul.innerHTML = "";
+    top.forEach(t => {
+      const li = document.createElement("li");
+      li.textContent = t.skill + " " + t.score + "/5";
+      ul.appendChild(li);
+    });
+
+    document.getElementById("result").style.display = "block";
+  }
+
+  document.getElementById("classType").addEventListener("change", renderQuestions);
+  document.getElementById("calc").addEventListener("click", calc);
+  renderQuestions();
+</script>
+</body>
 </html>
